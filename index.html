@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0b1026">
+    <meta name="format-detection" content="telephone=no">
+    <title>Вход</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="advent-calendar-a.css">
+    <style>
+        .sync-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translate(-50%, 6px);
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: rgba(17, 27, 58, 0.9);
+            border: 1px solid rgba(244, 208, 111, 0.5);
+            color: #f6e7b2;
+            font-size: 0.85rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 10;
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+        }
+
+        .sync-toast.show {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        .sync-toast.error {
+            border-color: rgba(252, 165, 165, 0.7);
+            color: #fca5a5;
+        }
+    </style>
+</head>
+<body class="auth-locked">
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-card">
+            <h2>Вход</h2>
+            <p>Введите логин и пароль для доступа.</p>
+            <form id="authForm" novalidate>
+                <label for="loginInput">Логин <span class="required">*</span></label>
+                <input id="loginInput" type="text" autocomplete="username">
+                <label for="passwordInput">Пароль <span class="required">*</span></label>
+                <input id="passwordInput" type="password" autocomplete="current-password">
+                <button type="submit">Войти</button>
+                <div class="auth-error" id="authError" aria-live="polite"></div>
+            </form>
+        </div>
+    </div>
+    <canvas class="snow-canvas" id="snowCanvas"></canvas>
+    <div class="sync-toast" id="syncToast" role="status" aria-live="polite"></div>
+
+    <script>
+        const authForm = document.getElementById('authForm');
+        const loginInput = document.getElementById('loginInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const authError = document.getElementById('authError');
+        const sessionKey = 'adventSession';
+        const adminSessionKey = 'adminSession';
+        const snowCanvas = document.getElementById('snowCanvas');
+        const snowCtx = snowCanvas ? snowCanvas.getContext('2d') : null;
+        const snowParticles = [];
+        const syncToast = document.getElementById('syncToast');
+        let toastTimer;
+
+        async function loadAuthConfig() {
+            const response = await fetch('auth.json', { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error('auth.json');
+            }
+            return response.json();
+        }
+
+        function showSyncToast(message, isError) {
+            if (!syncToast) {
+                return;
+            }
+            syncToast.textContent = message;
+            syncToast.classList.toggle('error', Boolean(isError));
+            syncToast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                syncToast.classList.remove('show');
+            }, 1800);
+        }
+
+        async function logLastLogin(user) {
+            try {
+                const response = await fetch('/api/progress-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        login: user.login,
+                        displayName: user.displayName || user.login,
+                        group: user.group
+                    })
+                });
+                if (response.ok) {
+                    showSyncToast('Успешный вход.');
+                    return true;
+                }
+                showSyncToast('Не удалось отправить вход.', true);
+                return false;
+            } catch (error) {
+                showSyncToast('Ошибка связи с сервером.', true);
+                return false;
+            }
+        }
+
+        authForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const login = loginInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!login || !password) {
+                authError.textContent = 'Заполните все обязательные поля.';
+                return;
+            }
+
+            try {
+                const config = await loadAuthConfig();
+                const users = Array.isArray(config.users) ? config.users : [];
+                const user = users.find((entry) => String(entry.login) === login && String(entry.password) === password);
+
+                if (!user) {
+                    authError.textContent = 'Неверный логин или пароль.';
+                    return;
+                }
+
+                const syncOk = await logLastLogin(user);
+                if (!syncOk) {
+                    return;
+                }
+
+                if (user.group === 'ADMIN') {
+                    localStorage.setItem(adminSessionKey, 'ok');
+                    setTimeout(() => {
+                        window.location.href = 'ad-ru-te-1.html';
+                    }, 600);
+                    return;
+                }
+
+                localStorage.setItem(sessionKey, JSON.stringify({
+                    login,
+                    group: user.group,
+                    displayName: user.displayName || login
+                }));
+
+                if (user.group === 'A') {
+                    setTimeout(() => {
+                        window.location.href = 'advent-calendar-a.html';
+                    }, 600);
+                    return;
+                }
+                if (user.group === 'B') {
+                    setTimeout(() => {
+                        window.location.href = 'advent-calendar-b.html';
+                    }, 600);
+                    return;
+                }
+
+                authError.textContent = 'Неизвестная группа пользователя.';
+            } catch (error) {
+                authError.textContent = 'Не удалось загрузить auth.json. Откройте страницу через локальный сервер.';
+            }
+        });
+
+        function resizeSnowCanvas() {
+            if (!snowCanvas || !snowCtx) {
+                return;
+            }
+            const ratio = window.devicePixelRatio || 1;
+            snowCanvas.width = Math.floor(window.innerWidth * ratio);
+            snowCanvas.height = Math.floor(window.innerHeight * ratio);
+            snowCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        }
+
+        function initSnow() {
+            if (!snowCanvas || !snowCtx) {
+                return;
+            }
+            snowParticles.length = 0;
+            const count = Math.min(140, Math.max(80, Math.floor(window.innerWidth / 9)));
+            for (let i = 0; i < count; i += 1) {
+                snowParticles.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    radius: 1 + Math.random() * 2.4,
+                    speed: 0.4 + Math.random() * 1.1,
+                    drift: (Math.random() - 0.5) * 0.6,
+                    opacity: 0.35 + Math.random() * 0.5
+                });
+            }
+        }
+
+        function animateSnow() {
+            if (!snowCanvas || !snowCtx) {
+                return;
+            }
+            snowCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+            snowParticles.forEach((flake) => {
+                flake.y += flake.speed;
+                flake.x += flake.drift;
+                if (flake.y > window.innerHeight + 10) {
+                    flake.y = -10;
+                    flake.x = Math.random() * window.innerWidth;
+                }
+                if (flake.x > window.innerWidth + 10) {
+                    flake.x = -10;
+                } else if (flake.x < -10) {
+                    flake.x = window.innerWidth + 10;
+                }
+                snowCtx.beginPath();
+                snowCtx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+                snowCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
+                snowCtx.fill();
+            });
+            requestAnimationFrame(animateSnow);
+        }
+
+        window.addEventListener('resize', () => {
+            resizeSnowCanvas();
+            initSnow();
+        });
+
+        resizeSnowCanvas();
+        initSnow();
+        animateSnow();
+    </script>
+</body>
+</html>

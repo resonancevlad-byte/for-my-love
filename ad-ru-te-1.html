@@ -1,0 +1,364 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1a1624">
+  <title>ad-ru-te-1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Mulish:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="ad-ru-te-1.css">
+</head>
+<body class="locked">
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-card">
+      <h2>Доступ администратора</h2>
+      <p>Введите ник и пароль для просмотра внутреннего списка.</p>
+      <form id="authForm" novalidate>
+        <label for="loginInput">Ник</label>
+        <input id="loginInput" type="text" autocomplete="username">
+        <label for="passwordInput">Пароль</label>
+        <input id="passwordInput" type="password" autocomplete="current-password">
+        <button class="btn" type="submit">Войти</button>
+        <div class="error" id="authError" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="page">
+    <header>
+      <div>
+        <h1>Сводка календарей</h1>
+        <p>Черновая админка для контроля пользователей и полученных купонов.</p>
+      </div>
+      <button class="logout" id="logoutBtn">Выход</button>
+    </header>
+
+    <section class="cards" id="cards"></section>
+  </div>
+
+  <div class="modal hidden" id="couponModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h3 id="modalTitle">Купоны</h3>
+        <button class="modal-close" id="modalClose" aria-label="Закрыть">×</button>
+      </div>
+      <div class="coupon-list" id="couponList"></div>
+    </div>
+  </div>
+  <div class="admin-toast" id="adminToast" role="status" aria-live="polite"></div>
+
+  <script>
+    const sessionKey = "adminSession";
+    const adminGroup = "ADMIN";
+
+    const authOverlay = document.getElementById("authOverlay");
+    const authForm = document.getElementById("authForm");
+    const loginInput = document.getElementById("loginInput");
+    const passwordInput = document.getElementById("passwordInput");
+    const authError = document.getElementById("authError");
+    const cardsEl = document.getElementById("cards");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    const modal = document.getElementById("couponModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const couponList = document.getElementById("couponList");
+    const modalClose = document.getElementById("modalClose");
+    const adminToast = document.getElementById("adminToast");
+    let toastTimer;
+
+    const totalsByGroup = { A: 0, B: 0 };
+    const progressUpdateUrl = "/api/progress-update";
+    let progressRows = [];
+
+    function setLocked(isLocked) {
+      document.body.classList.toggle("locked", isLocked);
+      authOverlay.style.display = isLocked ? "flex" : "none";
+    }
+
+    function formatCalendarTitle(group) {
+      if (group === "A") {
+        return "Календарь A";
+      }
+      if (group === "B") {
+        return "Календарь B";
+      }
+      return "Календарь";
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return "—";
+      }
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return "—";
+      }
+      const pad = (num) => String(num).padStart(2, "0");
+      return `${pad(date.getHours())}:${pad(date.getMinutes())} ${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
+    }
+
+    function showAdminToast(message) {
+      if (!adminToast) {
+        return;
+      }
+      adminToast.textContent = message;
+      adminToast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        adminToast.classList.remove("show");
+      }, 2000);
+    }
+
+    function normalizeCoupons(coupons) {
+      if (!Array.isArray(coupons)) {
+        return [];
+      }
+      return coupons
+        .filter((item) => item && typeof item === "object")
+        .map((item) => ({
+          ...item,
+          used: Boolean(item.used)
+        }));
+    }
+
+    function renderCouponSection(title, coupons, showActions, entry) {
+      const section = document.createElement("div");
+      section.className = "coupon-section";
+      const heading = document.createElement("div");
+      heading.className = "coupon-section-title";
+      heading.textContent = title;
+      section.appendChild(heading);
+
+      if (!coupons.length) {
+        const empty = document.createElement("div");
+        empty.className = "coupon-empty";
+        empty.textContent = "Купонов пока нет.";
+        section.appendChild(empty);
+        return section;
+      }
+
+      coupons.forEach((coupon) => {
+        const row = document.createElement("div");
+        row.className = `coupon-row${coupon.used ? " used" : ""}`;
+        row.innerHTML = `
+          <div class="coupon-emoji">${coupon.icon || "🎁"}</div>
+          <div class="coupon-title">${coupon.title || "Купон"}</div>
+          <div class="coupon-desc">${coupon.desc || ""}</div>
+        `;
+        if (showActions) {
+          const useButton = document.createElement("button");
+          useButton.type = "button";
+          useButton.className = "coupon-use";
+          useButton.textContent = "✓";
+          useButton.title = "Отметить как использованный";
+          useButton.addEventListener("click", () => markCouponUsed(entry, coupon));
+          row.appendChild(useButton);
+        }
+        section.appendChild(row);
+      });
+
+      return section;
+    }
+
+    function splitCoupons(coupons) {
+      const normalized = normalizeCoupons(coupons);
+      return {
+        active: normalized.filter((item) => !item.used),
+        used: normalized.filter((item) => item.used)
+      };
+    }
+
+    async function updateProgress(entry) {
+      try {
+        await fetch(progressUpdateUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            login: entry.login,
+            displayName: entry.display_name || entry.login,
+            group: entry.group,
+            openedDays: Array.isArray(entry.opened_days) ? entry.opened_days : [],
+            coupons: normalizeCoupons(entry.coupons)
+          })
+        });
+      } catch (error) {
+      }
+    }
+
+    function openModal(entry) {
+      const title = formatCalendarTitle(entry.group);
+      modalTitle.textContent = `Купоны · ${title}`;
+      couponList.innerHTML = "";
+      const sections = splitCoupons(entry.coupons);
+      couponList.appendChild(renderCouponSection("Активные", sections.active, true, entry));
+      couponList.appendChild(renderCouponSection("Использованные", sections.used, false, entry));
+      modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    function renderCards() {
+      cardsEl.innerHTML = "";
+      progressRows.forEach((entry, index) => {
+        const total = totalsByGroup[entry.group] || 0;
+        const openedCount = Array.isArray(entry.opened_days) ? entry.opened_days.length : 0;
+        const progressValue = total ? Math.round((openedCount / total) * 100) : 0;
+        const title = formatCalendarTitle(entry.group);
+        const couponsCount = Array.isArray(entry.coupons) ? entry.coupons.length : 0;
+        const lastLogin = formatDate(entry.last_login_at);
+        const lastUpdate = formatDate(entry.updated_at);
+
+        const card = document.createElement("article");
+        card.className = "card";
+        card.style.animationDelay = `${index * 0.07}s`;
+        card.innerHTML = `
+          <h2>${title}</h2>
+          <div class="meta">
+            <div class="meta-item">Ник для логина <span>${entry.login}</span></div>
+            <div class="meta-item">Отображаемое имя <span>${entry.display_name || entry.login}</span></div>
+            <div class="meta-item">Открыто <span>${openedCount} из ${total}</span></div>
+            <div class="meta-item">Получено купонов <span>${couponsCount}</span></div>
+            <div class="meta-item">Последний вход <span>${lastLogin}</span></div>
+            <div class="meta-item">Последнее обновление <span>${lastUpdate}</span></div>
+          </div>
+          <div class="card-footer">
+            <div class="progress">Прогресс: <strong>${progressValue}%</strong></div>
+            <div class="card-actions">
+              <button class="btn btn-secondary" type="button">Обнулить дни</button>
+              <button class="btn" type="button">Купоны</button>
+            </div>
+          </div>
+        `;
+        const buttons = card.querySelectorAll("button");
+        const resetButton = buttons[0];
+        const couponsButton = buttons[1];
+        couponsButton.addEventListener("click", () => openModal(entry));
+        resetButton.addEventListener("click", () => resetProgress(entry));
+        cardsEl.appendChild(card);
+      });
+    }
+
+    async function loadAuthConfig() {
+      const response = await fetch("auth.json", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("auth.json");
+      }
+      return response.json();
+    }
+
+    authForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const login = loginInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!login || !password) {
+        authError.textContent = "Введите ник и пароль.";
+        return;
+      }
+
+      try {
+        const config = await loadAuthConfig();
+        const users = Array.isArray(config.users) ? config.users : [];
+        const user = users.find((entry) => String(entry.login) === login && String(entry.password) === password);
+
+        if (!user || user.group !== adminGroup) {
+          authError.textContent = "Неверный ник или пароль.";
+          return;
+        }
+
+        localStorage.setItem(sessionKey, "ok");
+        authError.textContent = "";
+        setLocked(false);
+      } catch (error) {
+        authError.textContent = "Не удалось загрузить auth.json.";
+      }
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem(sessionKey);
+      window.location.href = "index.html";
+    });
+
+    modalClose.addEventListener("click", closeModal);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+        closeModal();
+      }
+    });
+
+    async function loadTotals() {
+      try {
+        const [aRes, bRes] = await Promise.all([
+          fetch("data/rewards-a.json", { cache: "no-store" }),
+          fetch("data/rewards-b.json", { cache: "no-store" })
+        ]);
+        if (aRes.ok) {
+          const aData = await aRes.json();
+          totalsByGroup.A = Array.isArray(aData.items) ? aData.items.length : 0;
+        }
+        if (bRes.ok) {
+          const bData = await bRes.json();
+          totalsByGroup.B = Array.isArray(bData.items) ? bData.items.length : 0;
+        }
+      } catch (error) {
+      }
+    }
+
+    async function loadProgress() {
+      try {
+        const response = await fetch("/api/progress-list");
+        if (!response.ok) {
+          return;
+        }
+        const payload = await response.json();
+        progressRows = Array.isArray(payload.data)
+          ? payload.data.filter((row) => row && row.group !== "ADMIN")
+          : [];
+      } catch (error) {
+      }
+    }
+
+    async function markCouponUsed(entry, coupon) {
+      const normalized = normalizeCoupons(entry.coupons);
+      const targetIndex = normalized.findIndex((item) => Number(item.slot) === Number(coupon.slot));
+      if (targetIndex === -1) {
+        return;
+      }
+      normalized[targetIndex].used = true;
+      entry.coupons = normalized;
+      await updateProgress(entry);
+      openModal(entry);
+    }
+
+    async function resetProgress(entry) {
+      entry.opened_days = [];
+      entry.coupons = [];
+      await updateProgress(entry);
+      renderCards();
+      showAdminToast(`Дни сброшены и обновлены для пользователя ${entry.login}`);
+    }
+
+    async function initAdmin() {
+      await loadTotals();
+      await loadProgress();
+      renderCards();
+    }
+
+    const savedSession = localStorage.getItem(sessionKey);
+    setLocked(savedSession !== "ok");
+    initAdmin();
+  </script>
+</body>
+</html>

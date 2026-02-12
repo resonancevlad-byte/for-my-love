@@ -1,0 +1,621 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0b1026">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎄</text></svg>">
+    <title>Адвент-календарь для любимой</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Mulish:wght@300;400;600&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="advent-calendar-a.css">
+</head>
+<body>
+    <div class="coupon-overlay" id="couponOverlay" aria-hidden="true">
+        <div class="coupon-card" id="couponCard">
+            <h3>Специальный Купон!! 🎉</h3>
+            <p id="couponMessage">Нажми, чтобы получить подарок.</p>
+            <div class="coupon-title" id="couponTitle"></div>
+            <div class="coupon-desc" id="couponDesc"></div>
+        </div>
+    </div>
+    <canvas class="snow-canvas" id="snowCanvas"></canvas>
+    <canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+    <div class="container">
+        <header>
+            <div class="user-panel-wrap">
+                <div class="user-panel" id="userPanel">
+                    <div class="user-name" id="userName"></div>
+                    <div class="progress-counter user-progress" id="progressCounter">Открыто 0/13</div>
+                </div>
+                <button class="user-coupons-btn" id="userCouponsBtn" type="button">Купоны</button>
+            </div>
+            <h1 id="pageTitle">Адвент-календарь</h1>
+            <p class="subtitle" id="pageSubtitle">13 дней общения для вас</p>
+        </header>
+
+        <div class="calendar-grid" id="calendar"></div>
+
+        <div class="instructions"><p id="instructionsText">Нажимай на день, чтобы открыть задание. Дни открываются по очереди.</p></div>
+    </div>
+    <button class="info-fab" id="infoButton" type="button" aria-label="Справка">i</button>
+    <div class="info-overlay" id="infoOverlay" aria-hidden="true">
+        <div class="info-card" role="dialog" aria-modal="true" aria-label="Справка">
+            <button class="info-close" type="button" aria-label="Закрыть справку">×</button>
+            <h3 id="infoTitle">Справка</h3>
+            <div class="info-list" id="infoList"></div>
+        </div>
+    </div>
+    <div class="user-coupon-overlay" id="userCouponOverlay" aria-hidden="true">
+        <div class="user-coupon-card" role="dialog" aria-modal="true">
+            <div class="user-coupon-head">
+                <h3>Мои купоны</h3>
+                <button class="user-coupon-close" id="userCouponClose" type="button" aria-label="Закрыть">×</button>
+            </div>
+            <div class="user-coupon-list" id="userCouponList"></div>
+        </div>
+    </div>
+
+    <script>
+                        const sessionKey = 'adventSession';
+        const session = JSON.parse(localStorage.getItem(sessionKey) || 'null');
+        if (!session || session.group !== 'A') {
+            window.location.href = 'index.html';
+        }
+
+        const calendar = document.getElementById('calendar');
+        const progressUpdateUrl = '/api/progress-update';
+        const progressReadUrl = '/api/progress-read';
+        const couponOverlay = document.getElementById('couponOverlay');
+        const couponCard = document.getElementById('couponCard');
+        const couponTitle = document.getElementById('couponTitle');
+        const couponDesc = document.getElementById('couponDesc');
+        const couponMessage = document.getElementById('couponMessage');
+        const progressCounter = document.getElementById('progressCounter');
+        const snowCanvas = document.getElementById('snowCanvas');
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const snowCtx = snowCanvas ? snowCanvas.getContext('2d') : null;
+        const confettiCtx = confettiCanvas.getContext('2d');
+        const infoButton = document.getElementById('infoButton');
+        const infoOverlay = document.getElementById('infoOverlay');
+        const infoClose = document.querySelector('.info-close');
+        const infoTitle = document.getElementById('infoTitle');
+        const userName = document.getElementById('userName');
+        const instructionsText = document.getElementById('instructionsText');
+        const pageTitle = document.getElementById('pageTitle');
+        const pageSubtitle = document.getElementById('pageSubtitle');
+        const infoList = document.getElementById('infoList');
+        const userCouponsBtn = document.getElementById('userCouponsBtn');
+        const userCouponOverlay = document.getElementById('userCouponOverlay');
+        const userCouponList = document.getElementById('userCouponList');
+        const userCouponClose = document.getElementById('userCouponClose');
+
+        if (userName && session && session.displayName) {
+            userName.textContent = session.displayName;
+        }
+
+        const snowParticles = [];
+
+        let pendingCouponOpen = null;
+        let rewards = [];
+        let totalDays = 0;
+
+        function setCouponOpen(open) {
+            document.body.classList.toggle('coupon-open', open);
+            couponOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+        }
+
+        function setInfoOpen(open) {
+            document.body.classList.toggle('info-open', open);
+            infoOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+        }
+
+        function setUserCouponOpen(open) {
+            document.body.classList.toggle('user-coupon-open', open);
+            userCouponOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+        }
+
+        function resizeSnowCanvas() {
+            if (!snowCanvas || !snowCtx) {
+                return;
+            }
+            const ratio = window.devicePixelRatio || 1;
+            snowCanvas.width = Math.floor(window.innerWidth * ratio);
+            snowCanvas.height = Math.floor(window.innerHeight * ratio);
+            snowCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        }
+
+        function initSnow() {
+            if (!snowCanvas || !snowCtx) {
+                return;
+            }
+            snowParticles.length = 0;
+            const count = Math.min(160, Math.max(90, Math.floor(window.innerWidth / 8)));
+            for (let i = 0; i < count; i += 1) {
+                snowParticles.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    radius: 1 + Math.random() * 2.5,
+                    speed: 0.4 + Math.random() * 1.2,
+                    drift: (Math.random() - 0.5) * 0.6,
+                    opacity: 0.5
+                });
+            }
+        }
+
+        function animateSnow() {
+            if (!snowCanvas || !snowCtx) {
+                return;
+            }
+            snowCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+            snowParticles.forEach((flake) => {
+                flake.y += flake.speed;
+                flake.x += flake.drift;
+                if (flake.y > window.innerHeight + 10) {
+                    flake.y = -10;
+                    flake.x = Math.random() * window.innerWidth;
+                }
+                if (flake.x > window.innerWidth + 10) {
+                    flake.x = -10;
+                } else if (flake.x < -10) {
+                    flake.x = window.innerWidth + 10;
+                }
+                snowCtx.beginPath();
+                snowCtx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+                snowCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
+                snowCtx.fill();
+            });
+            requestAnimationFrame(animateSnow);
+        }
+
+
+        async function loadRewards() {
+            const response = await fetch('data/rewards-a.json', { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error('rewards-a.json');
+            }
+            const data = await response.json();
+            if (data && Array.isArray(data.items)) {
+                return data;
+            }
+            return { page: null, items: [] };
+        }
+
+        async function loadTheme() {
+            const response = await fetch('data/theme-a.json', { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error('theme-a.json');
+            }
+            const data = await response.json();
+            if (data && data.vars) {
+                Object.entries(data.vars).forEach(([key, value]) => {
+                    document.documentElement.style.setProperty(key, value);
+                });
+            }
+        }
+
+        async function loadInfo() {
+            const response = await fetch('data/info.json', { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error('info.json');
+            }
+            const data = await response.json();
+            if (data && Array.isArray(data.items)) {
+                return data;
+            }
+            return { title: 'Справка', items: [] };
+        }
+
+        let openedDays = [];
+        let openedCoupons = [];
+        let lastOpened = 0;
+
+        function computeLastOpened() {
+            lastOpened = openedDays.length ? Math.max(...openedDays) : 0;
+        }
+
+        function renderUserCoupons() {
+            if (!userCouponList) {
+                return;
+            }
+            const normalized = Array.isArray(openedCoupons)
+                ? openedCoupons.map((item) => ({ ...item, used: Boolean(item.used) }))
+                : [];
+            const active = normalized.filter((item) => !item.used);
+            const used = normalized.filter((item) => item.used);
+            userCouponList.innerHTML = "";
+
+            const renderSection = (title, items) => {
+                const section = document.createElement('div');
+                section.className = 'user-coupon-section';
+                const heading = document.createElement('div');
+                heading.className = 'user-coupon-title';
+                heading.textContent = title;
+                section.appendChild(heading);
+                if (!items.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'user-coupon-empty';
+                    empty.textContent = 'Купонов пока нет.';
+                    section.appendChild(empty);
+                    return section;
+                }
+                items.forEach((coupon) => {
+                    const row = document.createElement('div');
+                    row.className = `user-coupon-row${coupon.used ? ' used' : ''}`;
+                    row.innerHTML = `
+                        <div class="user-coupon-emoji">${coupon.icon || '🎁'}</div>
+                        <div>
+                            <div class="user-coupon-name">${coupon.title || 'Купон'}</div>
+                            <div class="user-coupon-desc">${coupon.desc || ''}</div>
+                        </div>
+                    `;
+                    section.appendChild(row);
+                });
+                return section;
+            };
+
+            userCouponList.appendChild(renderSection('Активные', active));
+            userCouponList.appendChild(renderSection('Использованные', used));
+        }
+
+        async function loadRemoteProgress() {
+            if (!session || !session.login) {
+                return;
+            }
+            try {
+                const response = await fetch(`${progressReadUrl}?login=${encodeURIComponent(session.login)}`);
+                if (!response.ok) {
+                    return;
+                }
+                const payload = await response.json();
+                const data = payload && payload.data ? payload.data : null;
+                const remoteDays = data && Array.isArray(data.opened_days) ? data.opened_days : [];
+                const remoteCoupons = data && Array.isArray(data.coupons) ? data.coupons : [];
+                openedDays = Array.from(new Set(remoteDays))
+                    .map((value) => parseInt(value, 10))
+                    .filter((value) => Number.isFinite(value) && value > 0)
+                    .sort((a, b) => a - b);
+                openedCoupons = remoteCoupons.filter((item) => item && typeof item === 'object' && Number.isFinite(Number(item.slot)));
+                computeLastOpened();
+            } catch (error) {
+            }
+        }
+
+        async function syncProgress() {
+            if (!session || !session.login || !session.group) {
+                return;
+            }
+            try {
+                await fetch(progressUpdateUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        login: session.login,
+                        displayName: session.displayName || session.login,
+                        group: session.group,
+                        openedDays,
+                        coupons: openedCoupons
+                    })
+                });
+            } catch (error) {
+            }
+        }
+
+        const cards = [];
+
+        function resizeConfettiCanvas() {
+            const ratio = window.devicePixelRatio || 1;
+            confettiCanvas.width = Math.floor(window.innerWidth * ratio);
+            confettiCanvas.height = Math.floor(window.innerHeight * ratio);
+            confettiCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        }
+
+        function launchConfetti() {
+            resizeConfettiCanvas();
+            const colors = ['#f6e7b2', '#f4d06f', '#f472b6', '#93c5fd', '#facc15'];
+            const particles = Array.from({ length: 140 }, () => ({
+                x: window.innerWidth / 2,
+                y: window.innerHeight / 2,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.8) * 12,
+                size: 6 + Math.random() * 6,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * Math.PI
+            }));
+
+            let start = null;
+            function tick(timestamp) {
+                if (!start) start = timestamp;
+                const elapsed = timestamp - start;
+                confettiCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+                particles.forEach((p) => {
+                    p.vy += 0.2;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.rotation += 0.2;
+
+                    confettiCtx.save();
+                    confettiCtx.translate(p.x, p.y);
+                    confettiCtx.rotate(p.rotation);
+                    confettiCtx.fillStyle = p.color;
+                    confettiCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+                    confettiCtx.restore();
+                });
+
+                if (elapsed < 1200) {
+                    requestAnimationFrame(tick);
+                } else {
+                    confettiCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+        window.addEventListener('resize', () => {
+            resizeConfettiCanvas();
+            resizeSnowCanvas();
+            initSnow();
+        });
+
+        function getCardByDay(dayNumber) {
+            const entry = cards.find((item) => item.day === dayNumber);
+            return entry ? entry.card : null;
+        }
+
+        function updateLockState() {
+            const nextAllowed = lastOpened + 1;
+            cards.forEach(({ day, card }) => {
+                const opened = day <= lastOpened;
+                const available = day === nextAllowed;
+                const locked = day > nextAllowed;
+                card.classList.toggle('locked', locked);
+                card.classList.toggle('opened', opened);
+                card.classList.toggle('available', available);
+
+                if (opened) {
+                    card.classList.add('flipped');
+                }
+            });
+
+            if (progressCounter) {
+                const total = totalDays || 0;
+                progressCounter.textContent = `Открыто ${openedDays.length}/${total}`;
+            }
+        }
+
+        function triggerShine(card) {
+            card.classList.add('shine');
+            window.setTimeout(() => {
+                card.classList.remove('shine');
+            }, 1100);
+        }
+
+        function markDayOpened(card, dayNumber, reward) {
+            card.classList.add('flipped');
+            if (dayNumber > lastOpened) {
+                lastOpened = dayNumber;
+            }
+            if (!openedDays.includes(dayNumber)) {
+                openedDays.push(dayNumber);
+                openedDays.sort((a, b) => a - b);
+            }
+            if (reward && reward.coupon) {
+                const exists = openedCoupons.some((item) => Number(item.slot) === dayNumber);
+                if (!exists) {
+                    openedCoupons.push({
+                        slot: dayNumber,
+                        icon: reward.icon || '',
+                        title: reward.title || '',
+                        desc: reward.desc || '',
+                        coupon: reward.coupon
+                    });
+                }
+            }
+            syncProgress();
+            updateLockState();
+            const nextCard = getCardByDay(dayNumber + 1);
+            if (nextCard) {
+                triggerShine(nextCard);
+            }
+        }
+
+        function showCouponModal(reward, card, dayNumber) {
+            couponTitle.textContent = reward.title;
+            couponDesc.textContent = reward.desc;
+            couponMessage.textContent = 'Нажми, чтобы получить подарок.';
+            pendingCouponOpen = { card, dayNumber, reward };
+            setCouponOpen(true);
+            launchConfetti();
+        }
+
+        function handleCardToggle(card, dayNumber, reward) {
+            if (dayNumber <= lastOpened) {
+                card.classList.add('flipped');
+                return;
+            }
+
+            if (dayNumber !== lastOpened + 1) {
+                return;
+            }
+
+            if (reward.coupon) {
+                showCouponModal(reward, card, dayNumber);
+                return;
+            }
+
+            markDayOpened(card, dayNumber, reward);
+        }
+
+        function renderRewards(items) {
+            cards.length = 0;
+            calendar.innerHTML = '';
+            totalDays = items.length;
+
+            items.forEach((reward) => {
+                const dayNumber = reward.slot;
+                const card = document.createElement('div');
+                card.className = 'day-card';
+                card.dataset.day = String(dayNumber);
+                card.innerHTML = `
+                    <div class="card-front">
+                        ${reward.coupon ? '<span class="coupon-badge">Купон</span>' : ''}
+                        <div class="day-number">${dayNumber}</div>
+                        <div class="day-label">День</div>
+                    </div>
+                    <div class="card-back">
+                        ${reward.coupon ? '<span class="coupon-badge">Купон</span>' : ''}
+                        <div class="reward-icon">${reward.icon}</div>
+                        <div class="reward-title">${reward.title}</div>
+                        <div class="reward-desc">${reward.desc}</div>
+                        <div class="day-marker">День ${dayNumber}</div>
+                    </div>
+                `;
+
+                // Better touch handling for iOS Safari
+                let touchStartTime;
+
+                card.addEventListener('touchstart', () => {
+                    touchStartTime = Date.now();
+                }, { passive: true });
+
+                card.addEventListener('touchend', (event) => {
+                    // Only flip if it was a quick tap (not a scroll)
+                    if (Date.now() - touchStartTime < 200) {
+                        event.preventDefault();
+                        handleCardToggle(card, dayNumber, reward);
+                    }
+                });
+
+                card.addEventListener('click', () => {
+                    // For non-touch devices
+                    if (!('ontouchstart' in window)) {
+                        handleCardToggle(card, dayNumber, reward);
+                    }
+                });
+
+                cards.push({ day: dayNumber, card });
+                calendar.appendChild(card);
+            });
+
+            updateLockState();
+        }
+
+        if (infoButton && infoOverlay) {
+            infoButton.addEventListener('click', () => {
+                setInfoOpen(true);
+            });
+
+            infoOverlay.addEventListener('click', (event) => {
+                if (event.target === infoOverlay) {
+                    setInfoOpen(false);
+                }
+            });
+
+            if (infoClose) {
+                infoClose.addEventListener('click', () => {
+                    setInfoOpen(false);
+                });
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    setInfoOpen(false);
+                }
+            });
+        }
+
+        if (userCouponsBtn && userCouponOverlay) {
+            userCouponsBtn.addEventListener('click', async () => {
+                await loadRemoteProgress();
+                renderUserCoupons();
+                setUserCouponOpen(true);
+            });
+
+            userCouponOverlay.addEventListener('click', (event) => {
+                if (event.target === userCouponOverlay) {
+                    setUserCouponOpen(false);
+                }
+            });
+
+            if (userCouponClose) {
+                userCouponClose.addEventListener('click', () => {
+                    setUserCouponOpen(false);
+                });
+            }
+        }
+
+        loadTheme().catch(() => {});
+
+        loadInfo()
+            .then((data) => {
+                if (!infoList) {
+                    return;
+                }
+                if (infoTitle) {
+                    infoTitle.textContent = data.title || 'Справка';
+                }
+                infoList.innerHTML = data.items.map((item) => `
+                    <div class="info-row">
+                        <div class="info-label">${item.term}</div>
+                        <div>${item.description}</div>
+                    </div>
+                `).join('');
+            })
+            .catch(() => {
+                if (infoList) {
+                    infoList.innerHTML = '<div class="info-row"><div class="info-label">Справка</div><div>Не удалось загрузить данные.</div></div>';
+                }
+            });
+
+        resizeSnowCanvas();
+        initSnow();
+        animateSnow();
+
+        loadRewards()
+            .then(async (data) => {
+                if (data.page) {
+                    if (pageTitle) {
+                        pageTitle.textContent = data.page.title || pageTitle.textContent;
+                    }
+                    if (pageSubtitle) {
+                        pageSubtitle.textContent = data.page.subtitle || pageSubtitle.textContent;
+                    }
+                    if (instructionsText) {
+                        instructionsText.textContent = data.page.instructions || instructionsText.textContent;
+                    }
+                }
+                rewards = data.items
+                    .slice()
+                    .sort((a, b) => a.slot - b.slot);
+                await loadRemoteProgress();
+                renderRewards(rewards);
+            })
+            .catch(() => {
+                if (instructionsText) {
+                    instructionsText.textContent = 'Не удалось загрузить список подарков. Откройте страницу через локальный сервер.';
+                }
+            });
+
+        couponCard.addEventListener('click', () => {
+            if (!pendingCouponOpen) {
+                setCouponOpen(false);
+                return;
+            }
+
+            const { card, dayNumber, reward } = pendingCouponOpen;
+            pendingCouponOpen = null;
+            setCouponOpen(false);
+            markDayOpened(card, dayNumber, reward);
+        });
+
+    </script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,1101 @@
+﻿
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        html {
+            /* Fix for iOS Safari 100vh bug */
+            height: -webkit-fill-available;
+        }
+
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0b1026 0%, #0f1b3d 45%, #0a1a1f 100%);
+            --bg-spots: radial-gradient(ellipse at 20% 20%, rgba(244, 208, 111, 0.12) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 80%, rgba(246, 231, 178, 0.08) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 50%, rgba(120, 160, 230, 0.08) 0%, transparent 70%);
+            --text-main: #e8e0f0;
+            --title-gradient: linear-gradient(135deg, #f6e7b2 0%, #f4d06f 50%, #f6e7b2 100%);
+            --subtitle-color: rgba(246, 231, 178, 0.75);
+            --progress-color: rgba(246, 231, 178, 0.75);
+            --panel-bg: rgba(17, 27, 58, 0.6);
+            --panel-border: rgba(244, 208, 111, 0.5);
+            --panel-shadow: 0 15px 50px rgba(244, 208, 111, 0.18), 0 0 30px rgba(120, 160, 230, 0.12);
+            --panel-name: #f6e7b2;
+            --panel-text: rgba(232, 224, 240, 0.8);
+            --fab-border: rgba(244, 208, 111, 0.5);
+            --fab-bg: rgba(17, 27, 58, 0.9);
+            --fab-color: #f6e7b2;
+            --fab-shadow: 0 15px 50px rgba(244, 208, 111, 0.18), 0 0 30px rgba(120, 160, 230, 0.12);
+            --info-overlay-bg: rgba(10, 10, 20, 0.6);
+            --info-card-bg: rgba(14, 20, 44, 0.9);
+            --info-card-border: rgba(244, 208, 111, 0.4);
+            --info-card-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+            --info-title: #f6e7b2;
+            --info-label: rgba(246, 231, 178, 0.9);
+            --info-row: rgba(232, 224, 240, 0.85);
+            --info-close-border: rgba(244, 208, 111, 0.4);
+            --info-close-bg: rgba(17, 27, 58, 0.9);
+            --info-close-color: #f6e7b2;
+            --card-front-bg: linear-gradient(145deg, rgba(17, 27, 58, 0.6) 0%, rgba(20, 36, 70, 0.5) 50%, rgba(11, 26, 31, 0.45) 100%);
+            --card-front-border: rgba(244, 208, 111, 0.25);
+            --card-front-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            --card-front-hover-border: rgba(244, 208, 111, 0.5);
+            --card-front-hover-shadow: 0 15px 50px rgba(244, 208, 111, 0.18), 0 0 30px rgba(120, 160, 230, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            --card-back-bg: linear-gradient(145deg, rgba(12, 28, 50, 0.65) 0%, rgba(23, 36, 70, 0.6) 50%, rgba(15, 32, 36, 0.55) 100%);
+            --card-back-border: rgba(244, 208, 111, 0.35);
+            --card-back-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(244, 208, 111, 0.15);
+            --day-number-gradient: linear-gradient(180deg, #f6e7b2 0%, #f4d06f 100%);
+            --day-label-color: rgba(246, 231, 178, 0.6);
+            --reward-title: #f4d06f;
+            --reward-desc: rgba(232, 224, 240, 0.8);
+            --coupon-badge-bg: linear-gradient(135deg, #f6e7b2, #f4d06f);
+            --instructions-bg: rgba(244, 208, 111, 0.08);
+            --instructions-border: rgba(244, 208, 111, 0.2);
+            --instructions-text: rgba(246, 231, 178, 0.75);
+            --coupon-overlay-bg: rgba(10, 10, 20, 0.6);
+            --coupon-card-bg: rgba(14, 20, 44, 0.9);
+            --coupon-card-border: rgba(244, 208, 111, 0.5);
+            --coupon-card-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+            --coupon-title: #f4d06f;
+            --coupon-text: rgba(232, 224, 240, 0.85);
+            --coupon-text-font: 'Cormorant Garamond', serif;
+            --coupon-title-secondary: #e8d5ff;
+            --locked-label: rgba(232, 224, 240, 0.8);
+            --locked-label-bg: rgba(0, 0, 0, 0.35);
+        }
+
+        body {
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            min-height: 100dvh;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            font-family: 'Nunito', sans-serif;
+            color: var(--text-main);
+            /* Safe area padding for iPhone notch */
+            padding: 40px 20px;
+            padding-top: max(40px, env(safe-area-inset-top));
+            padding-bottom: max(40px, env(safe-area-inset-bottom));
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
+            position: relative;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-spots);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 600;
+            background: var(--title-gradient);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 4s ease-in-out infinite;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        @keyframes shimmer {
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--subtitle-color);
+            font-style: italic;
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+.progress-counter {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 0.9rem;
+    color: var(--progress-color);
+    letter-spacing: 1px;
+}
+
+.user-panel-wrap {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.user-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 12px 14px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    box-shadow: var(--panel-shadow);
+}
+
+.user-coupons-btn {
+    border: 1px solid var(--panel-border);
+    background: rgba(17, 27, 58, 0.8);
+    color: var(--panel-name);
+    padding: 6px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Mulish', 'Nunito', sans-serif;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-coupons-btn {
+    width: 100%;
+}
+
+.user-coupons-btn:hover {
+    border-color: rgba(244, 208, 111, 0.75);
+    box-shadow: 0 15px 50px rgba(244, 208, 111, 0.18), 0 0 30px rgba(120, 160, 230, 0.12);
+}
+
+.user-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--panel-name);
+    letter-spacing: 1px;
+}
+
+.user-progress {
+    position: static;
+    font-size: 0.85rem;
+}
+
+.user-timer {
+    font-size: 0.8rem;
+    color: var(--panel-text);
+}
+
+.info-fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--fab-border);
+    background: var(--fab-bg);
+    color: var(--fab-color);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem;
+    cursor: pointer;
+    box-shadow: var(--fab-shadow);
+    z-index: 4;
+}
+
+.info-fab:hover {
+    border-color: rgba(244, 208, 111, 0.75);
+}
+
+.info-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--info-overlay-bg);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 3;
+}
+
+body.info-open .info-overlay {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.info-card {
+    width: min(520px, 100%);
+    background: var(--info-card-bg);
+    border: 1px solid var(--info-card-border);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: var(--info-card-shadow);
+    position: relative;
+}
+
+.info-card h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    margin-top: 4px;
+    margin-bottom: 21px;
+    color: var(--info-title);
+}
+
+.info-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--info-close-border);
+    background: var(--info-close-bg);
+    color: var(--info-close-color);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.info-close:hover {
+    box-shadow:
+        0 15px 50px rgba(244, 208, 111, 0.18),
+        0 0 30px rgba(120, 160, 230, 0.12);
+}
+
+
+.required {
+    color: #fca5a5;
+}
+
+.info-list {
+    display: grid;
+    gap: 10px;
+}
+
+.info-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 160px) 1fr;
+    gap: 12px;
+    font-size: 0.95rem;
+    color: var(--info-row);
+}
+
+.info-label {
+    color: var(--info-label);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.75rem;
+}
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            perspective: 1000px;
+        }
+
+        .day-card {
+            aspect-ratio: 1;
+            position: relative;
+            cursor: pointer;
+            -webkit-transform-style: preserve-3d;
+            transform-style: preserve-3d;
+            -webkit-transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Fix for Safari flickering */
+            -webkit-perspective: 1000px;
+        }
+
+        .day-card.flipped {
+            -webkit-transform: rotateY(180deg);
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            text-align: center;
+            /* Fix for Safari rendering */
+            -webkit-transform: translateZ(0);
+        }
+
+        .card-front {
+            background: var(--card-front-bg);
+            border: 1px solid var(--card-front-border);
+            box-shadow: var(--card-front-shadow);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .card-front::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 20px;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.1) 0%, 
+                transparent 50%);
+            pointer-events: none;
+        }
+
+        .day-card:hover .card-front {
+            border-color: var(--card-front-hover-border);
+            box-shadow: var(--card-front-hover-shadow);
+        }
+
+        .day-number {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3.5rem;
+            font-weight: 600;
+            background: var(--day-number-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .day-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--day-label-color);
+        }
+
+        .card-back {
+            background: var(--card-back-bg);
+            border: 1px solid var(--card-back-border);
+            box-shadow: var(--card-back-shadow);
+            -webkit-transform: rotateY(180deg);
+            transform: rotateY(180deg);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+
+        .reward-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .reward-title {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--reward-title);
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .reward-desc {
+            font-size: 0.75rem;
+            color: var(--reward-desc);
+            line-height: 1.4;
+        }
+
+        .day-marker {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.25;
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        .coupon-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--coupon-badge-bg);
+            color: white;
+            font-size: 0.6rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .card-back .coupon-badge {
+            background: var(--coupon-badge-bg);
+        }
+
+        .instructions {
+            text-align: center;
+            margin-top: 50px;
+            padding: 25px;
+            background: var(--instructions-bg);
+            border-radius: 15px;
+            border: 1px solid var(--instructions-border);
+        }
+
+        .instructions p {
+            color: var(--instructions-text);
+            font-size: 0.95rem;
+        }
+
+        .heart {
+            display: inline-block;
+            color: #f472b6;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(10, 10, 20, 0.6);
+            -webkit-backdrop-filter: blur(6px);
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 2;
+        }
+
+        body.auth-locked .auth-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        body.auth-locked .container {
+            filter: blur(6px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+.coupon-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--coupon-overlay-bg);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 3;
+}
+
+        body.coupon-open .coupon-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+body.coupon-open .container {
+    filter: blur(6px);
+    pointer-events: none;
+    user-select: none;
+}
+
+.user-coupon-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--coupon-overlay-bg);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 4;
+}
+
+body.user-coupon-open .user-coupon-overlay {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+body.user-coupon-open .container {
+    filter: blur(6px);
+    pointer-events: none;
+    user-select: none;
+}
+
+.user-coupon-card {
+    width: min(560px, 100%);
+    background: var(--coupon-card-bg);
+    border: 1px solid var(--coupon-card-border);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: var(--coupon-card-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.user-coupon-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-coupon-head h3 {
+    margin: 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem;
+    color: var(--coupon-title);
+}
+
+.user-coupon-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--info-close-border);
+    background: var(--info-close-bg);
+    color: var(--info-close-color);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.user-coupon-close:hover {
+    box-shadow:
+        0 15px 50px rgba(244, 208, 111, 0.18),
+        0 0 30px rgba(120, 160, 230, 0.12);
+}
+
+.user-coupon-list {
+    display: grid;
+    gap: 16px;
+    max-height: 360px;
+    overflow: auto;
+    padding-right: 6px;
+}
+
+.user-coupon-section {
+    display: grid;
+    gap: 10px;
+}
+
+.user-coupon-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--info-label);
+}
+
+.user-coupon-empty {
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px dashed rgba(244, 208, 111, 0.3);
+    color: var(--coupon-text);
+    font-size: 0.9rem;
+}
+
+.user-coupon-row {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(12, 28, 50, 0.65);
+    border: 1px solid rgba(244, 208, 111, 0.25);
+}
+
+.user-coupon-row.used {
+    opacity: 0.6;
+    filter: grayscale(0.2);
+}
+
+.user-coupon-emoji {
+    font-size: 1.2rem;
+}
+
+.user-coupon-name {
+    font-weight: 600;
+    color: var(--coupon-title-secondary);
+    margin-bottom: 4px;
+}
+
+.user-coupon-desc {
+    font-size: 0.85rem;
+    color: var(--coupon-text);
+}
+
+        .coupon-card {
+            width: min(520px, 100%);
+            background: var(--coupon-card-bg);
+            border: 1px solid var(--coupon-card-border);
+            border-radius: 18px;
+            padding: 26px 24px;
+            text-align: center;
+            box-shadow: var(--coupon-card-shadow);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .coupon-card h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            margin-bottom: 12px;
+            color: var(--coupon-title);
+        }
+
+        .coupon-card p {
+            color: var(--coupon-text);
+            font-size: 1rem;
+            font-family: var(--coupon-text-font);
+        }
+
+        .coupon-card .coupon-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4rem;
+            color: var(--coupon-title-secondary);
+            margin-top: 12px;
+            margin-bottom: 6px;
+            order: 2;
+        }
+
+        .coupon-card .coupon-desc {
+            font-size: 0.95rem;
+            color: var(--coupon-text);
+            font-family: var(--coupon-text-font);
+            order: 3;
+        }
+
+        .coupon-card #couponMessage {
+            order: 4;
+            margin-top: auto;
+            opacity: 0.5;
+            padding-top: 12px;
+        }
+
+.confetti-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.snow-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+        .auth-card {
+            width: min(420px, 100%);
+            background: rgba(20, 10, 40, 0.8);
+            border: 1px solid rgba(184, 148, 246, 0.35);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .auth-card h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .auth-card p {
+            color: rgba(232, 224, 240, 0.8);
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+        }
+
+        .auth-card label {
+            display: block;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(184, 148, 246, 0.8);
+            margin-bottom: 6px;
+        }
+
+        .auth-card input {
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(126, 232, 208, 0.35);
+            background: rgba(10, 10, 20, 0.6);
+            color: #e8e0f0;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        .auth-card button {
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f6e7b2, #f4d06f);
+            color: #0b1026;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .auth-error {
+            margin-top: 10px;
+            color: #fca5a5;
+            min-height: 1em;
+            font-size: 0.85rem;
+        }
+
+        .day-card.locked {
+            opacity: 0.45;
+            filter: grayscale(0.5);
+            cursor: not-allowed;
+        }
+
+        .day-card.locked::after {
+            content: 'ЗАКРЫТО';
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            color: var(--locked-label);
+            background: var(--locked-label-bg);
+            padding: 4px 6px;
+            border-radius: 10px;
+        }
+
+        .day-card.locked .card-front,
+        .day-card.locked .card-back {
+            background: linear-gradient(145deg,
+                rgba(90, 90, 90, 0.5) 0%,
+                rgba(70, 70, 70, 0.6) 50%,
+                rgba(50, 50, 50, 0.5) 100%);
+            border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .day-card.locked .day-number {
+            background: none;
+            -webkit-text-fill-color: rgba(232, 224, 240, 0.6);
+            color: rgba(232, 224, 240, 0.6);
+        }
+
+        .day-card.locked .day-label {
+            color: rgba(232, 224, 240, 0.6);
+        }
+
+        .day-card.opened {
+            cursor: default;
+        }
+
+        .day-card.available {
+            cursor: pointer;
+        }
+
+        .day-card.locked .coupon-badge {
+            color: #0b1026;
+        }
+
+        .day-card.shine .card-front::after {
+            content: '';
+            position: absolute;
+            inset: -20%;
+            background: linear-gradient(120deg,
+                transparent 20%,
+                rgba(255, 255, 255, 0.15) 35%,
+                rgba(255, 255, 255, 0.5) 50%,
+                rgba(255, 255, 255, 0.15) 65%,
+                transparent 80%);
+            transform: translateX(-120%) rotate(5deg);
+            animation: shineSweep 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes shineSweep {
+            0% { transform: translateX(-120%) rotate(5deg); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateX(120%) rotate(5deg); opacity: 0; }
+        }
+
+
+                /* Sparkle mark for opened/available days */
+        .day-card::before {
+            content: "\\2728";
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .day-card.opened::before,
+        .day-card.available::before {
+            opacity: 1;
+        }
+
+        .day-card.locked::before {
+            opacity: 0;
+        }
+
+        /* Touch optimization */
+        @media (pointer: coarse) {
+            .day-card {
+                -webkit-tap-highlight-color: transparent;
+            }
+            
+            .day-card:active .card-front {
+                transform: scale(0.98);
+            }
+        }
+
+        /* Планшеты */
+@media (max-width: 768px) {
+    body {
+        padding: 25px 15px;
+        background-attachment: scroll; /* Fix for iOS */
+    }
+            
+            body::before {
+                position: absolute;
+            }
+            
+    header {
+        margin-bottom: 30px;
+    }
+
+    .user-panel-wrap {
+        position: static;
+        margin: 0 auto 12px;
+        width: 100%;
+    }
+
+    .user-panel {
+        align-items: center;
+        text-align: center;
+    }
+
+    .user-coupons-btn {
+        width: 100%;
+    }
+            
+            .calendar-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
+            
+            .instructions {
+                margin-top: 35px;
+                padding: 20px;
+            }
+        }
+
+        /* Телефоны */
+        @media (max-width: 480px) {
+            body {
+                padding: 20px 12px;
+            }
+            
+            header {
+                margin-bottom: 20px;
+            }
+            
+            h1 {
+                letter-spacing: 1px;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .calendar-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .card-front, .card-back {
+                border-radius: 15px;
+                padding: 12px;
+            }
+            
+            .card-front::before {
+                border-radius: 15px;
+            }
+            
+            .day-number {
+                font-size: 2.2rem;
+                margin-bottom: 4px;
+            }
+            
+            .day-label {
+                font-size: 0.6rem;
+                letter-spacing: 2px;
+            }
+            
+            .reward-icon {
+                font-size: 1.6rem;
+                margin-bottom: 6px;
+            }
+            
+            .reward-title {
+                font-size: 0.9rem;
+                margin-bottom: 5px;
+            }
+            
+            .reward-desc {
+                font-size: 0.65rem;
+                line-height: 1.3;
+            }
+            
+            .coupon-badge {
+                font-size: 0.5rem;
+                padding: 3px 6px;
+                top: 8px;
+                right: 8px;
+            }
+            
+            .instructions {
+                margin-top: 25px;
+                padding: 15px;
+                border-radius: 12px;
+            }
+            
+            .instructions p {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Очень маленькие экраны (iPhone SE и т.д.) */
+        @media (max-width: 360px) {
+            body {
+                padding: 15px 8px;
+            }
+            
+            .calendar-grid {
+                gap: 8px;
+            }
+            
+            .day-number {
+                font-size: 1.9rem;
+            }
+            
+            .reward-title {
+                font-size: 0.8rem;
+            }
+            
+            .reward-desc {
+                font-size: 0.6rem;
+            }
+        }
+
+        /* Ландшафтная ориентация на телефоне */
+        @media (max-height: 500px) and (orientation: landscape) {
+            body {
+                padding: 15px;
+            }
+            
+            header {
+                margin-bottom: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .calendar-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 10px;
+            }
+            
+            .day-card {
+                aspect-ratio: 1;
+            }
+        }
+
+        /* iOS Safari specific fixes */
+        @supports (-webkit-touch-callout: none) {
+            body {
+                /* Disable text selection on iOS */
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            .day-card {
+                /* Better touch response on iOS */
+                -webkit-touch-callout: none;
+            }
+            
+            /* Fix for iOS momentum scrolling */
+            .container {
+                -webkit-transform: translateZ(0);
+            }
+        }
+
+        /* iPhone Pro Max / Plus models */
+        @media (min-width: 414px) and (max-width: 428px) {
+            .calendar-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Fallback for older Safari without aspect-ratio */
+@supports not (aspect-ratio: 1) {
+    .day-card {
+        padding-bottom: 100%;
+        height: 0;
+    }
+            
+    .card-front, .card-back {
+        height: auto;
+        min-height: 100%;
+    }
+}
+
+    
